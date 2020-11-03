@@ -102,3 +102,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Save file space by ignoreing NODE Modules folder
+node_modules/

@@ -9,7 +9,7 @@ const { allowedNodeEnvironmentFlags } = require("process");
 
 //connection
 
-var connect = mysql.createConnection({
+var connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
     user: "root",
@@ -18,9 +18,9 @@ var connect = mysql.createConnection({
     database: "employees_db"
 });
 
-createConnection.connect(function(err) {
+connection.connect(function(err) {
     if (err) throw err;
-    console.log("Connected! ID: " + createConnection.threadId);
+    console.log("Connected! ID: " + connection.threadId);
     employeeApp();
 });
 
@@ -87,13 +87,116 @@ function viewTable(query) {
     })
 };
 
-//update employee role
+//add new department
+
+function addDepartment() {
+    inquirer.prompt([
+        {
+            message: "New department name",
+            name: "newDepartment"
+        }
+    ]).then(function(answer) {
+        connection.query("INSERT INTO department (name) VALUES (?)", [answer.newDepartment], function(err, res) {
+            if (err) throw err;
+            console.log(`Added ${answer.newDepartment}`);
+            employeeApp();
+        })
+    })
+}
+
+//add new employee
+
+function addEmployee() {
+    var query = "SELECT title, id FROM role;";
+    connection.query(query, function(err, res) {
+        var rawResp = res;
+        var roleList = [];
+        var roleId;
+        if (err) throw err;
+        for (var i = 0; i < res.length; i++) {
+            roleList.push(res[i].title);
+        }
+        promptEmployee()
+        async function promptEmployee(){
+            await inquirer.prompt([
+                {
+                    message: "What is their first name?",
+                    name: "firstname"
+                },
+                {
+                    message: "What is their last name",
+                    name: "lastname"
+                },
+                {
+                    type: "list",
+                    message: "Select their role:",
+                    name: "role",
+                    choices: roleList
+                }
+            ]).then(function(answer) {
+                roleId = rawResp[roleList.indexOf(answer.role)].id;
+                connection.query("INSERT INTO employee (first_name, last_name, role_id) VALUES (?, ?, ?)", 
+                [answer.firstname, answer.lastname, roleId], function (err, res) {
+                    if (err) throw err;
+                })
+            employeeApp()
+        })
+    }
+    })
+};
+
+//add a new role
+
+function addRole() {
+    connection.query("SELECT id, name FROM department", function(err, res) {
+        if (err) throw err;
+        var newRoleList = [];
+        var departmentId;
+        console.log(cTable.getTable(res));
+        for (var i = 0; i < res.length; i++) {
+            newRoleList.push({id: res[i].id, name: res[i].name});
+        }
+        roleQuestions();
+
+        function roleQuestions() {
+            inquirer.prompt([
+                {
+                    type: "list",
+                    message: "Pick a department for this role",
+                    name: "deptName",
+                    choices: newRoleList
+                },
+                {
+                    message: "Enter role title",
+                    name: "roleName"
+                },
+                {
+                    message: "Enter salary for this role (Must be a number, with up to 2 decimals",
+                    name: "salary"
+                }
+            ]).then(function(answer) {
+                for (var i = 0; i < newRoleList.length; i++) {
+                    if (answer.deptName == newRoleList[i].name) {
+                        departmentId = newRoleList[i].id;
+                    }
+                }
+                connection.query("INSERT INTO role (title, salary, department_id) VALUES (?,?,?)", [answer.roleName, answer.salary, departmentId], function(err, res) {
+                    if (err) throw err;
+                    console.log(`Created ${answer.roleName}`);
+                    employeeApp();
+                })
+            })
+        }
+    })
+}
+
+//update an employee's role
 
 function updateRole(query) {
     connection.query(query, function(err,res) {
         if (err) throw err;
         console.log("\n")
-        console.log(ctable.getTable(res));
+        console.log(cTable.getTable(res));
         updatePerson();
 
     function updatePerson() {
@@ -109,7 +212,7 @@ function updateRole(query) {
 };
 
 function newRole(newRoleEmployeeID) {
-    connection.query("SELECT id, title FROM role;", function(err,res){
+    connection.query("SELECT id, title FROM role;", function(err,res) {
         if(err) throw err;
         var roleList=[];
         var titles=[];
@@ -137,16 +240,10 @@ function newRole(newRoleEmployeeID) {
                 connection.query("UPDATE employee SET role_id = ? WHERE id = ?", [newRoleID, newRoleEmployeeID], function(err, res) {
                     if (err) throw err;
                     console.log("Update complete!");
-                    close();
+                    employeeApp();
                 })
             })
         }
         
     })
-}
-
-//close connection
-
-function close() {
-    connection.end();
-}
+};
