@@ -10,6 +10,10 @@
   *The what, why, and how:* 
   
   A command line program that can read and write departments, employees and employee roles.
+  
+  Here is a video of the functionality :
+  
+  <iframe src="https://drive.google.com/file/d/1E-uFb-yr7de_maj8ZH4MLTz4ZMRFX2G-/preview" width="640" height="480"></iframe>
 
   ## Table of Contents
   * [Installation](#installation)
